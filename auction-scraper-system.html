@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction Deal Finder - Automated Wholesale Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #3b82f6;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #111827;
+            --light: #f3f4f6;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: var(--dark);
+            color: white;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+            opacity: 0.1;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .header p {
+            color: #9ca3af;
+            position: relative;
+        }
+        
+        .status-bar {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .pulse {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
+        
+        .controls {
+            padding: 30px;
+            background: var(--light);
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .deals-container {
+            padding: 30px;
+        }
+        
+        .deal-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .deal-card.hot {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, transparent 100%);
+        }
+        
+        .deal-card.hot::before {
+            content: '🔥 HOT DEAL';
+            position: absolute;
+            top: 20px;
+            right: -35px;
+            background: var(--danger);
+            color: white;
+            padding: 5px 50px;
+            transform: rotate(45deg);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .deal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        
+        .deal-address {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .deal-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-hot {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .badge-good {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .badge-pass {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .deal-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric {
+            padding: 15px;
+            background: var(--light);
+            border-radius: 8px;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--dark);
+            margin-top: 5px;
+        }
+        
+        .metric-value.profit {
+            color: var(--primary);
+        }
+        
+        .metric-value.loss {
+            color: var(--danger);
+        }
+        
+        .deal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: var(--light);
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #6b7280;
+        }
+        
+        .spinner {
+            border: 3px solid var(--light);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #6b7280;
+        }
+        
+        .empty-state h3 {
+            font-size: 24px;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ Auction Deal Finder</h1>
+            <p>Automated scanning of 7 county foreclosure auctions in Southwest Florida</p>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="pulse"></div>
+                <span id="scanStatus">Ready to scan</span>
+            </div>
+            <div class="status-item">
+                <span>Last scan: <span id="lastScan">Never</span></span>
+            </div>
+            <div class="status-item">
+                <span>Next auto-scan: <span id="nextScan">5:45 AM</span></span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>County Filter</label>
+                    <select id="countyFilter">
+                        <option value="all">All Counties</option>
+                        <option value="sarasota">Sarasota</option>
+                        <option value="manatee">Manatee</option>
+                        <option value="charlotte">Charlotte</option>
+                        <option value="lee">Lee</option>
+                        <option value="collier">Collier</option>
+                        <option value="pinellas">Pinellas</option>
+                        <option value="hillsborough">Hillsborough</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Max Starting Bid</label>
+                    <input type="number" id="maxBid" value="200000" placeholder="200000">
+                </div>
+                <div class="control-group">
+                    <label>Min Profit Required</label>
+                    <input type="number" id="minProfit" value="20000" placeholder="20000">
+                </div>
+                <div class="control-group">
+                    <label>Deal Rating</label>
+                    <select id="dealRating">
+                        <option value="all">All Deals</option>
+                        <option value="hot">HOT Only (<60% ARV)</option>
+                        <option value="good">GOOD+ (60-70% ARV)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="scanAuctions()">
+                    🔍 Scan All Counties Now
+                </button>
+                <button class="btn btn-secondary" onclick="exportDeals()">
+                    📊 Export to Excel
+                </button>
+                <button class="btn btn-secondary" onclick="setupAlerts()">
+                    🔔 Configure Alerts
+                </button>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalDeals">0</div>
+                <div class="stat-label">Total Auctions Found</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="hotDeals">0</div>
+                <div class="stat-label">HOT Deals (<60% ARV)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgProfit">$0</div>
+                <div class="stat-label">Avg Profit Potential</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="bestCounty">-</div>
+                <div class="stat-label">Best County Today</div>
+            </div>
+        </div>
+        
+        <div class="deals-container" id="dealsContainer">
+            <div class="empty-state">
+                <h3>No auctions scanned yet</h3>
+                <p>Click "Scan All Counties Now" to find today's opportunities</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Store for auction data
+        let auctionData = [];
+        
+        // Mock data generator for demonstration
+        function generateMockAuctions() {
+            const counties = ['Sarasota', 'Manatee', 'Charlotte', 'Lee', 'Collier', 'Pinellas', 'Hillsborough'];
+            const streets = ['Main St', 'Oak Ave', 'Palm Dr', 'Beach Rd', 'Gulf Blvd', 'Central Ave', 'Park St'];
+            const cities = ['Sarasota', 'Bradenton', 'Port Charlotte', 'Fort Myers', 'Naples', 'St. Petersburg', 'Tampa'];
+            
+            const auctions = [];
+            
+            for (let i = 0; i < 25; i++) {
+                const countyIndex = Math.floor(Math.random() * counties.length);
+                const arv = Math.floor(Math.random() * 300000) + 150000;
+                const startingBid = Math.floor(arv * (Math.random() * 0.4 + 0.35)); // 35-75% of ARV
+                const sqft = Math.floor(Math.random() * 1500) + 1000;
+                const repairs = sqft * 25;
+                const mao = (arv * 0.65) - repairs;
+                const profit = mao - startingBid;
+                const ratio = (startingBid / arv) * 100;
+                
+                let rating = 'PASS';
+                if (ratio < 60) rating = 'HOT';
+                else if (ratio < 70) rating = 'GOOD';
+                
+                auctions.push({
+                    id: i + 1,
+                    address: `${Math.floor(Math.random() * 9000) + 1000} ${streets[Math.floor(Math.random() * streets.length)]}`,
+                    city: cities[countyIndex],
+                    county: counties[countyIndex],
+                    auctionDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+                    caseNumber: `2024-CA-${String(Math.floor(Math.random() * 9000) + 1000).padStart(6, '0')}`,
+                    startingBid: startingBid,
+                    arv: arv,
+                    sqft: sqft,
+                    repairs: repairs,
+                    mao: mao,
+                    profit: profit,
+                    ratio: ratio,
+                    rating: rating
+                });
+            }
+            
+            return auctions.sort((a, b) => b.profit - a.profit);
+        }
+        
+        function scanAuctions() {
+            const statusEl = document.getElementById('scanStatus');
+            const containerEl = document.getElementById('dealsContainer');
+            
+            // Show loading state
+            statusEl.textContent = 'Scanning all counties...';
+            containerEl.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Scanning 7 county auction sites...</p>
+                </div>
+            `;
+            
+            // Simulate API delay
+            setTimeout(() => {
+                auctionData = generateMockAuctions();
+                displayDeals();
+                updateStats();
+                
+                statusEl.textContent = `Found ${auctionData.length} auctions`;
+                document.getElementById('lastScan').textContent = new Date().toLocaleTimeString();
+            }, 2000);
+        }
+        
+        function displayDeals() {
+            const containerEl = document.getElementById('dealsContainer');
+            const countyFilter = document.getElementById('countyFilter').value;
+            const maxBid = parseFloat(document.getElementById('maxBid').value) || Infinity;
+            const minProfit = parseFloat(document.getElementById('minProfit').value) || 0;
+            const dealRating = document.getElementById('dealRating').value;
+            
+            let filteredDeals = auctionData.filter(deal => {
+                if (countyFilter !== 'all' && deal.county.toLowerCase() !== countyFilter) return false;
+                if (deal.startingBid > maxBid) return false;
+                if (deal.profit < minProfit) return false;
+                if (dealRating === 'hot' && deal.rating !== 'HOT') return false;
+                if (dealRating === 'good' && deal.rating === 'PASS') return false;
+                return true;
+            });
+            
+            if (filteredDeals.length === 0) {
+                containerEl.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No deals match your criteria</h3>
+                        <p>Try adjusting your filters or scanning again</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            containerEl.innerHTML = filteredDeals.map(deal => `
+                <div class="deal-card ${deal.rating === 'HOT' ? 'hot' : ''}">
+                    <div class="deal-header">
+                        <div>
+                            <div class="deal-address">${deal.address}</div>
+                            <div style="color: #6b7280; margin-top: 5px;">
+                                ${deal.city}, ${deal.county} County | Case: ${deal.caseNumber}
+                            </div>
+                        </div>
+                        <span class="deal-badge badge-${deal.rating.toLowerCase()}">${deal.rating}</span>
+                    </div>
+                    
+                    <div class="deal-metrics">
+                        <div class="metric">
+                            <div class="metric-label">Starting Bid</div>
+                            <div class="metric-value">$${deal.startingBid.toLocaleString()}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Est. ARV</div>
+                            <div class="metric-value">$${deal.arv.toLocaleString()}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Repairs (${deal.sqft} sqft)</div>
+                            <div class="metric-value">$${deal.repairs.toLocaleString()}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Your MAO</div>
+                            <div class="metric-value">$${deal.mao.toLocaleString()}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Profit Potential</div>
+                            <div class="metric-value ${deal.profit > 0 ? 'profit' : 'loss'}">
+                                $${Math.abs(deal.profit).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Bid/ARV Ratio</div>
+                            <div class="metric-value">${deal.ratio.toFixed(1)}%</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: var(--light); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>Auction Date:</strong> ${deal.auctionDate} at 10:00 AM
+                    </div>
+                    
+                    <div class="deal-actions">
+                        <button class="btn btn-primary" onclick="analyzeDeep('${deal.id}')">
+                            📊 Deep Analysis
+                        </button>
+                        <button class="btn btn-secondary" onclick="findBuyers('${deal.id}')">
+                            👥 Match Buyers
+                        </button>
+                        <button class="btn btn-secondary" onclick="saveToLeads('${deal.id}')">
+                            💾 Save to Leads
+                        </button>
+                        <button class="btn btn-secondary" onclick="setAlert('${deal.id}')">
+                            🔔 Set Alert
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateStats() {
+            const hotDeals = auctionData.filter(d => d.rating === 'HOT').length;
+            const avgProfit = auctionData.reduce((sum, d) => sum + d.profit, 0) / auctionData.length;
+            
+            // Find best county
+            const countyProfits = {};
+            auctionData.forEach(deal => {
+                if (!countyProfits[deal.county]) countyProfits[deal.county] = [];
+                countyProfits[deal.county].push(deal.profit);
+            });
+            
+            let bestCounty = '-';
+            let bestAvg = 0;
+            for (const [county, profits] of Object.entries(countyProfits)) {
+                const avg = profits.reduce((a, b) => a + b, 0) / profits.length;
+                if (avg > bestAvg) {
+                    bestAvg = avg;
+                    bestCounty = county;
+                }
+            }
+            
+            document.getElementById('totalDeals').textContent = auctionData.length;
+            document.getElementById('hotDeals').textContent = hotDeals;
+            document.getElementById('avgProfit').textContent = '$' + Math.round(avgProfit).toLocaleString();
+            document.getElementById('bestCounty').textContent = bestCounty;
+        }
+        
+        function analyzeDeep(dealId) {
+            const deal = auctionData.find(d => d.id == dealId);
+            if (!deal) return;
+            
+            alert(`Deep Analysis for ${deal.address}:
+            
+📊 Market Analysis:
+- Recent comps: 3 similar properties sold
+- Avg sale price: $${(deal.arv * 1.05).toLocaleString()}
+- Days on market: 45-60 days
+- Market trend: Appreciating 5% annually
+
+🔨 Repair Breakdown:
+- Roof: $8,000 (needs replacement)
+- Kitchen: $12,000 (full remodel)
+- Bathrooms: $8,000 (2 bath updates)
+- Flooring: $5,000 (new throughout)
+- Paint/Misc: $2,000
+
+💰 Exit Strategies:
+1. Wholesale: Assign for $15,000 fee
+2. Fix & Flip: $${((deal.arv - deal.startingBid - deal.repairs) * 0.7).toLocaleString()} profit
+3. Rental: $${Math.round(deal.arv * 0.008).toLocaleString()}/month
+
+⚠️ Risks:
+- Title issues possible (run title search)
+- HOA restrictions unknown
+- Potential foundation issues`);
+        }
+        
+        function findBuyers(dealId) {
+            const deal = auctionData.find(d => d.id == dealId);
+            if (!deal) return;
+            
+            alert(`Matched Buyers for ${deal.address}:
+            
+✅ Top 3 Matches:
+
+1. John Smith - ABC Investments
+   📱 (941) 555-0123
+   💰 Buys: $150k-$400k
+   🏠 Prefers: ${deal.county} County
+   
+2. Maria Garcia - Quick Flips LLC
+   📱 (239) 555-0456
+   💰 Buys: $100k-$350k
+   🏠 Active in: All SWFL
+   
+3. David Chen - Premier Holdings
+   📱 (813) 555-0789
+   💰 Buys: $200k-$500k
+   🏠 Focus: Rentals
+
+Email template has been copied to clipboard!`);
+        }
+        
+        function saveToLeads(dealId) {
+            const deal = auctionData.find(d => d.id == dealId);
+            if (!deal) return;
+            
+            // Save to localStorage (integrate with main dashboard)
+            let leads = JSON.parse(localStorage.getItem('auctionLeads') || '[]');
+            leads.push(deal);
+            localStorage.setItem('auctionLeads', JSON.stringify(leads));
+            
+            alert(`✅ Saved ${deal.address} to your leads database!`);
+        }
+        
+        function setAlert(dealId) {
+            const deal = auctionData.find(d => d.id == dealId);
+            if (!deal) return;
+            
+            alert(`🔔 Alert set for ${deal.address}!
+            
+You'll receive notifications:
+- 3 days before auction
+- 1 day before auction
+- Morning of auction (7 AM)
+
+Via:
+✉️ Email: your@email.com
+💬 SMS: (941) 555-0000`);
+        }
+        
+        function exportDeals() {
+            // Create CSV content
+            let csv = 'Address,City,County,Auction Date,Starting Bid,ARV,Repairs,MAO,Profit,Rating\n';
+            auctionData.forEach(deal => {
+                csv += `"${deal.address}","${deal.city}","${deal.county}","${deal.auctionDate}",${deal.startingBid},${deal.arv},${deal.repairs},${deal.mao},${deal.profit},"${deal.rating}"\n`;
+            });
+            
+            // Download file
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `auction_deals_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+        
+        function setupAlerts() {
+            alert(`🔔 Alert Configuration:
+            
+Current Settings:
+- Auto-scan: Daily at 5:45 AM
+- Counties: All 7 counties
+- Criteria: Profit > $20,000
+- Delivery: Email + SMS
+
+Upgrade to PRO ($197/mo) for:
+✨ Instant alerts (within 5 minutes)
+✨ Custom profit thresholds
+✨ Buyer matching automation
+✨ Direct integration with your CRM`);
+        }
+        
+        // Filter change handlers
+        document.getElementById('countyFilter').addEventListener('change', displayDeals);
+        document.getElementById('maxBid').addEventListener('input', displayDeals);
+        document.getElementById('minProfit').addEventListener('input', displayDeals);
+        document.getElementById('dealRating').addEventListener('change', displayDeals);
+        
+        // Auto-scan simulation
+        function checkAutoScan() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            
+            if (hours === 5 && minutes === 45) {
+                scanAuctions();
+            }
+        }
+        
+        // Check every minute
+        setInterval(checkAutoScan, 60000);
+    </script>
+</body>
+</html>
