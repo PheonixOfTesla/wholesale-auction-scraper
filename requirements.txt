@@ -1,4 +1,5 @@
 aiohttp==3.8.4
+aiofiles==23.1.0
 flask==2.3.2
 flask-cors==4.0.0
 beautifulsoup4==4.12.2
@@ -8,3 +9,8 @@ python-dotenv==1.0.0
 gunicorn==20.1.0
 lxml==4.9.2
 requests==2.31.0
+sqlalchemy==2.0.15
+psycopg2-binary==2.9.6
+fake-useragent==1.2.1
+aiohttp-socks==0.8.0
+loguru==0.7.0

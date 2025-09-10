@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["python311", "gcc", "postgresql", "redis"]
+
+[phases.install]
+cmds = ["pip install --upgrade pip", "pip install -r requirements.txt"]
+
+[start]
+cmd = "gunicorn flask_api_server:app --bind 0.0.0.0:$PORT"
