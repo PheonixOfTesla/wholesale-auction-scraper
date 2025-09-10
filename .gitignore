@@ -9,3 +9,4 @@ node_modules/
 .DS_Store
 *.log
 celerybeat-schedule
+node_modules/
