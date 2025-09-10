@@ -6,7 +6,7 @@ import threading
 import json
 import os
 from datetime import datetime
-from main import IntelligentScraper, ScraperAPI, ProxyConfig
+from intelligent_scraper import IntelligentScraper, ScraperAPI, ProxyConfig
 import logging
 
 app = Flask(__name__)
